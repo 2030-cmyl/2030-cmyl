@@ -1,12 +1,918 @@
-- 👋 Hi, I’m @2030-cmyl
-- 👀 I’m interested in ...
-- 🌱 I’m currently learning ...
-- 💞️ I’m looking to collaborate on ...
-- 📫 How to reach me ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find the Markers</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Animation library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        secondary: '#FF7043',
+                        success: '#4CAF50',
+                        common: '#A0A0A0',
+                        medium: '#3498DB',
+                        hard: '#FFC107',
+                        extreme: '#E74C3C',
+                        impossible: '#8E44AD'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        }
+                    },
+                    animation: {
+                        float: 'float 3s ease-in-out infinite',
+                        wiggle: 'wiggle 1s ease-in-out infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles */
+        .marker-container {
+            transition: all 0.3s ease;
+        }
+        
+        .marker-container:hover {
+            transform: scale(1.05);
+        }
+        
+        .found-marker {
+            filter: none;
+            opacity: 1;
+        }
+        
+        .unfound-marker {
+            filter: grayscale(30%);
+            opacity: 0.9;
+        }
+        
+        /* Make hidden markers larger for better touch targets */
+        .hidden-marker {
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 30px;
+            min-height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .hidden-marker i {
+            font-size: 24px; /* Larger icons for better visibility */
+        }
+        
+        .hidden-marker:hover, .hidden-marker:active {
+            transform: scale(1.2);
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: confetti-fall 3s ease-in-out forwards;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        .glow-effect {
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 5px -5px #5D5CDE;
+            }
+            to {
+                box-shadow: 0 0 20px 5px #5D5CDE;
+            }
+        }
+        
+        /* Hidden marker styles */
+        .cloud-move {
+            animation: cloud-float 20s linear infinite;
+        }
+        
+        @keyframes cloud-float {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100vw); }
+        }
+        
+        .clock-spin {
+            transition: transform 0.3s;
+        }
+        
+        .clock-spin:hover, .clock-spin:active {
+            transform: rotate(360deg);
+        }
+        
+        .secret-text {
+            color: rgba(200, 200, 200, 0.1);
+            user-select: none;
+        }
+        
+        .secret-text:hover, .secret-text:active {
+            color: inherit;
+        }
+        
+        /* Dark mode toggle */
+        .dark-mode-toggle {
+            transition: all 0.3s ease;
+        }
+        
+        /* Marker discovery animation */
+        .discovery-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .discovery-animation.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .discovery-content {
+            text-align: center;
+            transform: scale(0);
+            transition: transform 0.5s;
+            padding: 1.5rem;
+        }
+        
+        .discovery-animation.active .discovery-content {
+            transform: scale(1);
+        }
+        
+        .marker-rotating {
+            animation: rotating 2s linear infinite;
+        }
+        
+        @keyframes rotating {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Add touch feedback */
+        .touch-feedback:active {
+            transform: scale(0.95);
+            opacity: 0.9;
+        }
 
-<!---
-2030-cmyl/2030-cmyl is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-You can click the Preview link to take a look at your changes.
---->
+        /* Make buttons larger for mobile */
+        .mobile-button {
+            min-height: 48px;
+            min-width: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Fixed position mobile floating button */
+        .redeem-mobile-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 40;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Safe areas for mobile */
+        .safe-bottom {
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300 safe-bottom">
+    <!-- Dark mode detection -->
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-30">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <h1 class="text-xl md:text-3xl font-bold text-gray-800 dark:text-white">
+                        <span class="text-primary">Find</span> the <span class="text-secondary">Markers</span>
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="redeemButton" class="bg-primary hover:bg-opacity-80 text-white px-3 py-2 rounded-lg transition duration-300 flex items-center mobile-button touch-feedback md:flex hidden">
+                        <i class="fas fa-gift mr-2"></i> Redeem Code
+                    </button>
+                    <button id="darkModeToggle" class="dark-mode-toggle text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary p-3 rounded-full mobile-button touch-feedback">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:block"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="container mx-auto px-4 py-6 pb-24">
+        <!-- Statistics Bar -->
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
+            <div class="grid grid-cols-2 md:flex md:flex-wrap justify-between items-center">
+                <div class="text-center p-2">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Total Markers</h3>
+                    <p class="text-2xl font-bold text-primary"><span id="totalMarkers">0</span></p>
+                </div>
+                <div class="text-center p-2">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Found</h3>
+                    <p class="text-2xl font-bold text-success"><span id="foundMarkers">0</span></p>
+                </div>
+                <div class="text-center p-2 col-span-2">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Completion</h3>
+                    <p class="text-2xl font-bold text-secondary"><span id="completionPercentage">0</span>%</p>
+                </div>
+                <div class="p-2 col-span-2 w-full">
+                    <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700">
+                        <div id="progressBar" class="bg-primary h-4 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Markers Grid -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Your Markers Collection</h2>
+            <div id="markersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Marker cards will be dynamically generated here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer with hidden marker -->
+    <footer class="bg-white dark:bg-gray-800 py-6 px-4 shadow-inner mt-auto">
+        <div class="container mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-600 dark:text-gray-400 mb-4 md:mb-0">
+                    © 2023 Find the Markers. All rights reserved.
+                </p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary mobile-button">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary mobile-button">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary mobile-button">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <!-- Hidden tiny marker in the footer -->
+                    <div class="hidden-marker cursor-pointer mobile-button" data-marker-id="tiny-marker">
+                        <i class="fas fa-location-dot text-red-500 dark:text-red-400 hover:text-primary dark:hover:text-primary"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-center text-gray-500 dark:text-gray-500 text-sm relative">
+                <p>Tips: There are hidden markers scattered around this website. Can you find them all?</p>
+                <!-- Secret text with hidden marker -->
+                <p class="mt-2 text-xs">Look closer... <span class="hidden-marker text-red-500 text-xl" data-marker-id="secret-text-marker">•</span></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile floating redeem button -->
+    <button id="redeemMobileButton" class="redeem-mobile-button bg-primary hover:bg-opacity-90 text-white rounded-full transition duration-300 md:hidden flex touch-feedback shadow-lg">
+        <i class="fas fa-gift text-xl"></i>
+    </button>
+
+    <!-- Hidden markers scattered throughout the page with larger touch areas -->
+    <div class="fixed top-20 right-5 hidden-marker p-3" data-marker-id="cloud-marker">
+        <div class="cloud-move opacity-70 dark:opacity-60 hover:opacity-100">
+            <i class="fas fa-cloud text-blue-400 dark:text-blue-300"></i>
+        </div>
+    </div>
+
+    <div class="fixed bottom-24 left-5 hidden-marker animate-pulse p-3" data-marker-id="pulse-marker">
+        <div class="opacity-70 dark:opacity-60 hover:opacity-100">
+            <i class="fas fa-circle text-green-500 dark:text-green-400"></i>
+        </div>
+    </div>
+
+    <!-- Hidden clock marker that spins when hovered -->
+    <div class="fixed top-1/2 right-3 hidden-marker clock-spin p-3" data-marker-id="clock-marker">
+        <div class="opacity-70 dark:opacity-60 hover:opacity-100">
+            <i class="far fa-clock text-amber-500 dark:text-amber-400"></i>
+        </div>
+    </div>
+
+    <!-- Marker that only appears when scrolling -->
+    <div id="scroll-marker" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden-marker opacity-0 p-4" data-marker-id="scroll-marker">
+        <i class="fas fa-ghost text-purple-500"></i>
+    </div>
+    
+    <!-- Hidden marker in top right corner -->
+    <div class="fixed top-2 right-2 hidden-marker p-3" data-marker-id="corner-marker">
+        <div class="opacity-70 hover:opacity-100">
+            <i class="fas fa-map-pin text-pink-500 dark:text-pink-400"></i>
+        </div>
+    </div>
+    
+    <!-- Code redemption modal -->
+    <div id="redeemModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-5 w-full max-w-md mx-4 animate__animated animate__fadeInDown m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">Redeem Marker Code</h2>
+                <button id="closeRedeemModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 mobile-button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 mb-4">Enter a code below to redeem a marker:</p>
+            <div class="mb-4">
+                <input type="text" id="codeInput" class="w-full px-4 py-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white text-lg" placeholder="Enter code here">
+            </div>
+            <button id="submitCode" class="w-full bg-primary hover:bg-opacity-80 text-white py-4 rounded-lg transition duration-300 text-lg touch-feedback">
+                Redeem
+            </button>
+            <div id="redeemResult" class="mt-4 text-center hidden text-lg"></div>
+        </div>
+    </div>
+
+    <!-- Marker info modal -->
+    <div id="markerInfoModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden overflow-y-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-5 w-full max-w-md mx-4 animate__animated animate__fadeInDown m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="markerInfoTitle" class="text-xl font-bold text-gray-800 dark:text-white">Marker Info</h2>
+                <button id="closeMarkerInfoModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 mobile-button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex flex-col items-center mb-4">
+                <div id="markerInfoIcon" class="text-6xl mb-3"></div>
+                <div id="markerInfoDifficulty" class="inline-block px-3 py-1 rounded-full text-sm font-semibold mb-2"></div>
+            </div>
+            <p id="markerInfoDescription" class="text-gray-600 dark:text-gray-300 mb-4 text-lg"></p>
+            <div id="markerInfoStatus" class="text-center font-bold text-lg"></div>
+        </div>
+    </div>
+
+    <!-- Marker discovery animation overlay -->
+    <div id="discoveryAnimation" class="discovery-animation">
+        <div class="discovery-content bg-gray-900 bg-opacity-70 rounded-xl p-4 mx-4 max-w-md">
+            <div id="discoveryIcon" class="text-8xl mb-6 marker-rotating"></div>
+            <h2 id="discoveryTitle" class="text-white text-2xl font-bold mb-2"></h2>
+            <p id="discoveryDifficulty" class="inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4"></p>
+            <p id="discoveryDescription" class="text-gray-300 text-lg max-w-lg mx-auto mb-6"></p>
+            <button id="continueButton" class="bg-primary hover:bg-opacity-80 text-white px-6 py-4 rounded-lg transition duration-300 text-lg touch-feedback">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Marker data
+        const markerData = [
+            {
+                id: "black-marker",
+                name: "Black Marker",
+                difficulty: "Common",
+                icon: '<i class="fas fa-map-marker-alt text-black"></i>',
+                description: "The original marker, perfect for beginners. Its simple design belies its importance in your collection.",
+                redeemCode: "BLACK2023",
+                found: false
+            },
+            {
+                id: "code-marker",
+                name: "Code Marker",
+                difficulty: "Common",
+                icon: '<i class="fas fa-code text-blue-400"></i>',
+                description: "A marker for programmers. Legend says it can only be found by those who speak the language of computers.",
+                redeemCode: "CODER456",
+                found: false
+            },
+            {
+                id: "sun-marker",
+                name: "Sun Marker",
+                difficulty: "Common",
+                icon: '<i class="fas fa-sun text-yellow-400"></i>',
+                description: "Bright and radiant, this marker brings light to your collection. It's said to glow in the darkest of nights.",
+                redeemCode: "SUNSHINE",
+                found: false
+            },
+            {
+                id: "amazing-marker",
+                name: "Amazing Marker",
+                difficulty: "Medium",
+                icon: '<i class="fas fa-star text-purple-500"></i>',
+                description: "Simply amazing! This marker has properties that will leave you in awe. A must-have for any serious collector.",
+                redeemCode: "AMAZING42",
+                found: false
+            },
+            {
+                id: "error-marker",
+                name: "Error Marker",
+                difficulty: "Hard",
+                icon: '<i class="fas fa-exclamation-triangle text-red-500"></i>',
+                description: "This glitchy marker keeps disappearing and reappearing. Challenging to find and even harder to keep!",
+                redeemCode: "ERROR404",
+                found: false
+            },
+            {
+                id: "nice-marker",
+                name: "Nice Marker",
+                difficulty: "Hard",
+                icon: '<i class="fas fa-thumbs-up text-green-500"></i>',
+                description: "A remarkably nice marker that brings good vibes to your collection. Surprisingly difficult to obtain!",
+                redeemCode: "NICE6969",
+                found: false
+            },
+            {
+                id: "greedy-marker",
+                name: "Greedy Marker",
+                difficulty: "Hard",
+                icon: '<i class="fas fa-coins text-yellow-600"></i>',
+                description: "This marker hoards other markers if placed too close together. Keep it isolated or risk losing your collection!",
+                redeemCode: "GREED123",
+                found: false
+            },
+            {
+                id: "brainy-marker",
+                name: "Brainy Marker",
+                difficulty: "Extreme",
+                icon: '<i class="fas fa-brain text-pink-400"></i>',
+                description: "The smartest marker in your collection. It can solve complex puzzles and might even help you find other markers!",
+                redeemCode: "BRAIN789",
+                found: false
+            },
+            {
+                id: "varied-marker",
+                name: "Varied Marker",
+                difficulty: "Extreme",
+                icon: '<i class="fas fa-random text-indigo-500"></i>',
+                description: "This marker changes its appearance randomly. What you see now might not be what you get tomorrow!",
+                redeemCode: "VARIED55",
+                found: false
+            },
+            {
+                id: "impossible-marker",
+                name: "Impossible Marker",
+                difficulty: "Impossible",
+                icon: '<i class="fas fa-infinity text-gray-800 dark:text-gray-200"></i>',
+                description: "Rumored to be impossible to find. Only the most dedicated collectors have ever seen this legendary marker.",
+                redeemCode: "IMPOSSIBLE",
+                found: false
+            },
+            // Hidden markers that can be found around the website
+            {
+                id: "tiny-marker",
+                name: "Tiny Marker",
+                difficulty: "Medium",
+                icon: '<i class="fas fa-location-dot text-teal-500"></i>',
+                description: "This minuscule marker is easy to overlook. It likes to hide in plain sight!",
+                hidden: true,
+                found: false
+            },
+            {
+                id: "cloud-marker",
+                name: "Cloud Marker",
+                difficulty: "Medium",
+                icon: '<i class="fas fa-cloud text-blue-300"></i>',
+                description: "Floats across the sky, never staying in one place for too long. You need to be quick to catch this one!",
+                hidden: true,
+                found: false
+            },
+            {
+                id: "pulse-marker",
+                name: "Pulse Marker",
+                difficulty: "Hard",
+                icon: '<i class="fas fa-circle text-red-400"></i>',
+                description: "This marker has a heartbeat! Its rhythmic pulsing can help you locate it if you pay close attention.",
+                hidden: true,
+                found: false
+            },
+            {
+                id: "clock-marker",
+                name: "Clock Marker",
+                difficulty: "Hard",
+                icon: '<i class="far fa-clock text-gray-500"></i>',
+                description: "Time is of the essence with this marker. It reveals itself only to those patient enough to wait... or perhaps just hover.",
+                hidden: true,
+                found: false
+            },
+            {
+                id: "scroll-marker",
+                name: "Scroll Marker",
+                difficulty: "Extreme",
+                icon: '<i class="fas fa-ghost text-purple-400"></i>',
+                description: "This shy marker only appears when you're actively scrolling through the page. Blink and you'll miss it!",
+                hidden: true,
+                found: false
+            },
+            {
+                id: "corner-marker",
+                name: "Corner Marker",
+                difficulty: "Extreme",
+                icon: '<i class="fas fa-map-pin text-blue-500"></i>',
+                description: "Hiding in the corners of your screen, this marker tests your attention to detail and peripheral vision.",
+                hidden: true,
+                found: false
+            },
+            {
+                id: "secret-text-marker",
+                name: "Secret Text Marker",
+                difficulty: "Impossible",
+                icon: '<i class="fas fa-font text-indigo-400"></i>',
+                description: "Camouflaged within text, this marker is nearly impossible to spot without careful investigation.",
+                hidden: true,
+                found: false
+            }
+        ];
+
+        // Load saved markers from localStorage
+        function loadSavedMarkers() {
+            const savedMarkers = localStorage.getItem('foundMarkers');
+            if (savedMarkers) {
+                try {
+                    const foundIds = JSON.parse(savedMarkers);
+                    markerData.forEach(marker => {
+                        if (foundIds.includes(marker.id)) {
+                            marker.found = true;
+                        }
+                    });
+                } catch (e) {
+                    console.error("Error loading saved markers:", e);
+                    // Reset storage if there's an error
+                    localStorage.removeItem('foundMarkers');
+                }
+            }
+            updateMarkersGrid();
+            updateStats();
+        }
+
+        // Save markers to localStorage
+        function saveMarkers() {
+            const foundIds = markerData.filter(marker => marker.found).map(marker => marker.id);
+            localStorage.setItem('foundMarkers', JSON.stringify(foundIds));
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = markerData.length;
+            const found = markerData.filter(marker => marker.found).length;
+            const percentage = Math.round((found / total) * 100);
+            
+            document.getElementById('totalMarkers').textContent = total;
+            document.getElementById('foundMarkers').textContent = found;
+            document.getElementById('completionPercentage').textContent = percentage;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+        }
+
+        // Create marker grid items
+        function updateMarkersGrid() {
+            const markersGrid = document.getElementById('markersGrid');
+            markersGrid.innerHTML = '';
+            
+            markerData.forEach(marker => {
+                // Skip hidden markers on the main grid
+                if (marker.hidden) return;
+                
+                const markerElement = document.createElement('div');
+                markerElement.className = `marker-container bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center cursor-pointer touch-feedback ${marker.found ? 'found-marker' : 'unfound-marker'}`;
+                markerElement.setAttribute('data-marker-id', marker.id);
+                
+                markerElement.innerHTML = `
+                    <div class="text-4xl mb-2">
+                        ${marker.icon}
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white text-center">${marker.name}</h3>
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold mt-2 ${getDifficultyClass(marker.difficulty)}">
+                        ${marker.difficulty}
+                    </span>
+                    <div class="mt-3 text-center">
+                        <span class="text-sm font-bold ${marker.found ? 'text-green-500' : 'text-red-500'}">
+                            ${marker.found ? '<i class="fas fa-check-circle"></i> Found' : '<i class="fas fa-times-circle"></i> Not Found'}
+                        </span>
+                    </div>
+                `;
+                
+                markerElement.addEventListener('click', () => {
+                    showMarkerInfo(marker);
+                });
+                
+                markersGrid.appendChild(markerElement);
+            });
+        }
+
+        // Get CSS class based on difficulty
+        function getDifficultyClass(difficulty) {
+            switch(difficulty.toLowerCase()) {
+                case 'common':
+                    return 'bg-common bg-opacity-20 text-common';
+                case 'medium':
+                    return 'bg-medium bg-opacity-20 text-medium';
+                case 'hard':
+                    return 'bg-hard bg-opacity-20 text-hard';
+                case 'extreme':
+                    return 'bg-extreme bg-opacity-20 text-extreme';
+                case 'impossible':
+                    return 'bg-impossible bg-opacity-20 text-impossible';
+                default:
+                    return 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+            }
+        }
+
+        // Show marker info modal
+        function showMarkerInfo(marker) {
+            const markerInfoTitle = document.getElementById('markerInfoTitle');
+            const markerInfoIcon = document.getElementById('markerInfoIcon');
+            const markerInfoDifficulty = document.getElementById('markerInfoDifficulty');
+            const markerInfoDescription = document.getElementById('markerInfoDescription');
+            const markerInfoStatus = document.getElementById('markerInfoStatus');
+            
+            markerInfoTitle.textContent = marker.name;
+            markerInfoIcon.innerHTML = marker.icon;
+            markerInfoDifficulty.textContent = marker.difficulty;
+            markerInfoDifficulty.className = `inline-block px-3 py-1 rounded-full text-sm font-semibold ${getDifficultyClass(marker.difficulty)}`;
+            markerInfoDescription.textContent = marker.description;
+            
+            if (marker.found) {
+                markerInfoStatus.textContent = 'Found';
+                markerInfoStatus.className = 'text-center font-bold text-green-500';
+            } else {
+                markerInfoStatus.textContent = 'Not Found';
+                markerInfoStatus.className = 'text-center font-bold text-red-500';
+            }
+            
+            document.getElementById('markerInfoModal').classList.remove('hidden');
+        }
+
+        // Show marker discovery animation
+        function showDiscoveryAnimation(marker) {
+            const discoveryAnimation = document.getElementById('discoveryAnimation');
+            const discoveryIcon = document.getElementById('discoveryIcon');
+            const discoveryTitle = document.getElementById('discoveryTitle');
+            const discoveryDifficulty = document.getElementById('discoveryDifficulty');
+            const discoveryDescription = document.getElementById('discoveryDescription');
+            
+            discoveryIcon.innerHTML = marker.icon;
+            discoveryTitle.textContent = `${marker.name} Found!`;
+            discoveryDifficulty.textContent = marker.difficulty;
+            discoveryDifficulty.className = `inline-block px-3 py-1 rounded-full text-sm font-semibold ${getDifficultyClass(marker.difficulty)}`;
+            discoveryDescription.textContent = marker.description;
+            
+            // Create confetti effect
+            createConfetti();
+            
+            // Show the animation
+            discoveryAnimation.classList.add('active');
+            
+            // Play a sound
+            const sound = new Audio("data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=");
+            sound.play();
+        }
+
+        // Create confetti effect
+        function createConfetti() {
+            const colors = ['#FF5252', '#5D5CDE', '#4CAF50', '#FFC107', '#2196F3', '#FF9800', '#9C27B0'];
+            const confettiCount = 150;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.animationDuration = `${2 + Math.random() * 3}s`;
+                confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+                
+                document.body.appendChild(confetti);
+                
+                // Remove confetti after animation
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+
+        // Find a marker
+        function findMarker(markerId) {
+            const marker = markerData.find(m => m.id === markerId);
+            if (marker && !marker.found) {
+                marker.found = true;
+                saveMarkers();
+                updateMarkersGrid();
+                updateStats();
+                showDiscoveryAnimation(marker);
+                return true;
+            }
+            return false;
+        }
+
+        // Redeem code
+        function redeemCode(code) {
+            // Debug logging
+            console.log("Attempting to redeem code:", code);
+            
+            // Case-insensitive code comparison
+            const marker = markerData.find(m => m.redeemCode && m.redeemCode.toLowerCase() === code.toLowerCase());
+            
+            const redeemResult = document.getElementById('redeemResult');
+            redeemResult.classList.remove('hidden');
+            
+            if (marker) {
+                console.log("Found matching marker:", marker.name);
+                
+                if (marker.found) {
+                    redeemResult.textContent = `You already found the ${marker.name}!`;
+                    redeemResult.className = 'mt-4 text-center text-yellow-500';
+                } else {
+                    marker.found = true;
+                    saveMarkers();
+                    updateMarkersGrid();
+                    updateStats();
+                    
+                    redeemResult.textContent = `Successfully redeemed ${marker.name}!`;
+                    redeemResult.className = 'mt-4 text-center text-green-500';
+                    
+                    // Close the modal after a delay to show the animation
+                    setTimeout(() => {
+                        document.getElementById('redeemModal').classList.add('hidden');
+                        showDiscoveryAnimation(marker);
+                    }, 1500);
+                    
+                    return true;
+                }
+            } else {
+                console.log("No marker found for code:", code);
+                redeemResult.textContent = 'Invalid code. Try again!';
+                redeemResult.className = 'mt-4 text-center text-red-500';
+            }
+            return false;
+        }
+
+        // For debugging - adds a button to show hidden markers
+        function addDebugButton() {
+            const debugButton = document.createElement('button');
+            debugButton.textContent = "Toggle Hidden Markers";
+            debugButton.className = "fixed bottom-2 left-2 bg-red-500 text-white px-2 py-1 text-xs rounded opacity-50 hover:opacity-100";
+            debugButton.addEventListener('click', () => {
+                document.body.classList.toggle('highlight-hidden-markers');
+            });
+            document.body.appendChild(debugButton);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, initializing Find the Markers game...");
+            
+            // For debugging purposes
+            // addDebugButton();
+            
+            // Load saved markers
+            loadSavedMarkers();
+            
+            // Dark mode toggle
+            document.getElementById('darkModeToggle').addEventListener('click', function() {
+                document.documentElement.classList.toggle('dark');
+            });
+            
+            // Redeem modal
+            document.getElementById('redeemButton').addEventListener('click', function() {
+                document.getElementById('redeemModal').classList.remove('hidden');
+                document.getElementById('codeInput').focus();
+                document.getElementById('redeemResult').classList.add('hidden');
+            });
+
+            // Mobile redeem button
+            document.getElementById('redeemMobileButton').addEventListener('click', function() {
+                document.getElementById('redeemModal').classList.remove('hidden');
+                document.getElementById('codeInput').focus();
+                document.getElementById('redeemResult').classList.add('hidden');
+            });
+            
+            document.getElementById('closeRedeemModal').addEventListener('click', function() {
+                document.getElementById('redeemModal').classList.add('hidden');
+            });
+            
+            document.getElementById('submitCode').addEventListener('click', function() {
+                const code = document.getElementById('codeInput').value.trim();
+                if (code) {
+                    console.log("Submit button clicked with code:", code);
+                    redeemCode(code);
+                }
+            });
+            
+            document.getElementById('codeInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const code = this.value.trim();
+                    if (code) {
+                        console.log("Enter key pressed with code:", code);
+                        redeemCode(code);
+                    }
+                }
+            });
+            
+            // Marker info modal
+            document.getElementById('closeMarkerInfoModal').addEventListener('click', function() {
+                document.getElementById('markerInfoModal').classList.add('hidden');
+            });
+            
+            // Discovery animation
+            document.getElementById('continueButton').addEventListener('click', function() {
+                document.getElementById('discoveryAnimation').classList.remove('active');
+            });
+            
+            // Hidden markers event listeners
+            document.querySelectorAll('.hidden-marker').forEach(element => {
+                element.addEventListener('click', function() {
+                    const markerId = this.getAttribute('data-marker-id');
+                    console.log("Hidden marker clicked:", markerId);
+                    findMarker(markerId);
+                });
+            });
+            
+            // Scroll marker
+            window.addEventListener('scroll', function() {
+                const scrollMarker = document.getElementById('scroll-marker');
+                const scrollThreshold = 400;
+                
+                if (window.scrollY > scrollThreshold) {
+                    scrollMarker.style.opacity = '0.6';
+                } else {
+                    scrollMarker.style.opacity = '0';
+                }
+            });
+            
+            // Close modals when clicking outside content
+            document.getElementById('redeemModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                }
+            });
+            
+            document.getElementById('markerInfoModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                }
+            });
+            
+            // Print all codes to console for debugging
+            console.log("Available redemption codes:");
+            markerData.forEach(marker => {
+                if (marker.redeemCode) {
+                    console.log(`${marker.name}: ${marker.redeemCode}`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+        
